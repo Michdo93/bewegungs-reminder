@@ -10,11 +10,10 @@
 #>
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
-$ErrorView = "NormalView"
+$ErrorActionPreference = "Continue"
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
-$RepoUrl    = "https://github.com/DEIN-USER/DEIN-REPO.git"   # <-- anpassen
+$RepoUrl    = "https://github.com/Michdo93/bewegungs-reminder"   # <-- anpassen
 $RepoName   = "bewegungs-reminder"                             # <-- Ordnername nach dem Clone
 $InstallDir = Join-Path $env:LOCALAPPDATA $RepoName           # z.B. C:\Users\...\AppData\Local\bewegungs-reminder
 $MainScript = "bewegungs_reminder.py"
@@ -147,15 +146,13 @@ if (-not (Test-Path $scriptPath)) {
     Write-Fail "$MainScript nicht im Repo gefunden."
 }
 
-# VBScript muss als ANSI ohne BOM geschrieben werden (Fehler 800A0408 sonst).
-# Wir bauen die Zeilen als Byte-Array und schreiben sie direkt - 100% BOM-frei.
+# VBScript als ANSI schreiben (kein UTF-8-BOM, sonst Fehler 800A0408)
 $vbsPath = Join-Path $InstallDir "start_reminder.vbs"
-$q = [char]34  # doppeltes Anführungszeichen
-$line1 = "Set oShell = CreateObject($q" + "WScript.Shell$q)"
-$line2 = "oShell.Run $q$q$q" + $venvPythonW + "$q$q $q$q" + $scriptPath + "$q$q, 0, False"
-$vbsLines = $line1 + [Environment]::NewLine + $line2
-$ansi = [System.Text.Encoding]::GetEncoding(1252)
-[System.IO.File]::WriteAllBytes($vbsPath, $ansi.GetBytes($vbsLines))
+$vbsLines = @(
+    'Set oShell = CreateObject("WScript.Shell")',
+    "oShell.Run " + [char]34 + [char]34 + [char]34 + $venvPythonW + [char]34 + [char]34 + " " + [char]34 + [char]34 + $scriptPath + [char]34 + [char]34 + ", 0, False"
+)
+$vbsLines | Out-File -FilePath $vbsPath -Encoding Default -Force
 
 # Autostart-Ordner des aktuellen Benutzers
 $startupFolder = [System.Environment]::GetFolderPath("Startup")
