@@ -135,14 +135,15 @@ if (-not (Test-Path $scriptPath)) {
 
 $vbsPath = Join-Path $InstallDir "start_reminder.vbs"
 
-# KORREKTUR: Wir bauen den VBS-Inhalt als EINEN flachen String mit expliziten Umbrüchen (`r`n)
-# Das verhindert, dass PowerShell beim Schreiben des Arrays eigene Zeilenumbrüche in den oShell.Run Befehl mogelt.
-$vbsContent = "Set oShell = CreateObject(`"WScript.Shell`")" + "`r`n" + `
-               "oShell.Run `"`"`"`" + $venvPythonW + `"`"`" `"`"`" + $scriptPath + `"`"`"`, 0, False"
+# Wir bauen den Inhalt exakt so, wie er in der Datei landen soll.
+# Die dreifachen Anführungszeichen im VBS werden hier durch "" dargestellt.
+$vbsContent = @"
+Set oShell = CreateObject("WScript.Shell")
+oShell.Run """$venvPythonW"" ""$scriptPath""", 0, False
+"@
 
-# Wir nutzen Set-Content mit -NoNewline oder schreiben den String direkt, 
-# um die volle Kontrolle über die Zeilen zu haben.
-Set-Content -Path $vbsPath -Value $vbsContent -Encoding Ascii
+# Speichern als ASCII (wichtig für VBS)
+$vbsContent | Out-File -FilePath $vbsPath -Encoding Ascii -Force
 
 # Autostart-Verknüpfung
 $startupFolder = [System.Environment]::GetFolderPath("Startup")
@@ -156,7 +157,7 @@ $shortcut.WorkingDirectory = $InstallDir
 $shortcut.Description      = "40-15-5 Bewegungs-Reminder"
 $shortcut.Save()
 
-Write-OK "Autostart-Verknuepfung erstellt."
+Write-OK "Autostart-Verknuepfung erstellt: $shortcutPath"
 
 # ── 7. Direkt starten ─────────────────────────────────────────────────────────
 Write-Step "Starte Reminder jetzt..."
