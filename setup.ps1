@@ -129,35 +129,18 @@ Write-Step "Richte Autostart ein..."
 $scriptPath = Join-Path $InstallDir $MainScript
 $venvPythonW = Join-Path $InstallDir "Scripts\pythonw.exe"
 
-if (-not (Test-Path $scriptPath)) {
-    Write-Fail "$MainScript nicht im Repo gefunden."
-}
-
 $vbsPath = Join-Path $InstallDir "start_reminder.vbs"
 
-# Wir bauen den Inhalt exakt so, wie er in der Datei landen soll.
-# Die dreifachen Anführungszeichen im VBS werden hier durch "" dargestellt.
-$vbsContent = @"
-Set oShell = CreateObject("WScript.Shell")
-oShell.Run """$venvPythonW"" ""$scriptPath""", 0, False
-"@
+# Wir nutzen einfache Anführungszeichen ' für PowerShell, damit der Inhalt 
+# EXAKT so übernommen wird. Wir setzen die Pfade manuell ein.
+$line1 = 'Set oShell = CreateObject("WScript.Shell")'
+$line2 = 'oShell.Run """' + $venvPythonW + '"" ""' + $scriptPath + '""", 0, False'
 
-# Speichern als ASCII (wichtig für VBS)
-$vbsContent | Out-File -FilePath $vbsPath -Encoding Ascii -Force
+# Wir fügen die Zeilen zusammen
+$vbsContent = $line1 + "`r`n" + $line2
 
-# Autostart-Verknüpfung
-$startupFolder = [System.Environment]::GetFolderPath("Startup")
-$shortcutPath  = Join-Path $startupFolder "$AppName.lnk"
-
-$wsh      = New-Object -ComObject WScript.Shell
-$shortcut = $wsh.CreateShortcut($shortcutPath)
-$shortcut.TargetPath       = "wscript.exe"
-$shortcut.Arguments        = "`"$vbsPath`""
-$shortcut.WorkingDirectory = $InstallDir
-$shortcut.Description      = "40-15-5 Bewegungs-Reminder"
-$shortcut.Save()
-
-Write-OK "Autostart-Verknuepfung erstellt: $shortcutPath"
+# Out-File mit NoBom sorgt dafür, dass VBScript nicht stirbt
+[System.IO.File]::WriteAllText($vbsPath, $vbsContent, [System.Text.Encoding]::ASCII)
 
 # ── 7. Direkt starten ─────────────────────────────────────────────────────────
 Write-Step "Starte Reminder jetzt..."
