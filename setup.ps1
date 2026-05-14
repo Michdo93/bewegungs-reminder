@@ -146,12 +146,15 @@ if (-not (Test-Path $scriptPath)) {
     Write-Fail "$MainScript nicht im Repo gefunden."
 }
 
-# VBScript braucht ANSI-Encoding (kein UTF-8-BOM), sonst Fehler 800A0408
-# Daher WriteAllText mit Encoding::Default statt Set-Content -Encoding UTF8
-$vbsPath    = Join-Path $InstallDir "start_reminder.vbs"
-$vbsContent = "Set oShell = CreateObject(""WScript.Shell"")" + [Environment]::NewLine +
-              "oShell.Run """""  + $venvPythonW + """ """ + $scriptPath + """"", 0, False"
-[System.IO.File]::WriteAllText($vbsPath, $vbsContent, [System.Text.Encoding]::Default)
+# VBScript muss als ANSI ohne BOM geschrieben werden (Fehler 800A0408 sonst).
+# Wir bauen die Zeilen als Byte-Array und schreiben sie direkt - 100% BOM-frei.
+$vbsPath = Join-Path $InstallDir "start_reminder.vbs"
+$q = [char]34  # doppeltes Anführungszeichen
+$line1 = "Set oShell = CreateObject($q" + "WScript.Shell$q)"
+$line2 = "oShell.Run $q$q$q" + $venvPythonW + "$q$q $q$q" + $scriptPath + "$q$q, 0, False"
+$vbsLines = $line1 + [Environment]::NewLine + $line2
+$ansi = [System.Text.Encoding]::GetEncoding(1252)
+[System.IO.File]::WriteAllBytes($vbsPath, $ansi.GetBytes($vbsLines))
 
 # Autostart-Ordner des aktuellen Benutzers
 $startupFolder = [System.Environment]::GetFolderPath("Startup")
