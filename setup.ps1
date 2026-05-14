@@ -146,13 +146,19 @@ if (-not (Test-Path $scriptPath)) {
     Write-Fail "$MainScript nicht im Repo gefunden."
 }
 
-# VBScript als ANSI schreiben (kein UTF-8-BOM, sonst Fehler 800A0408)
 $vbsPath = Join-Path $InstallDir "start_reminder.vbs"
+
+# Wir nutzen hier den Format-Operator (-f), um die Anführungszeichen-Schlacht zu gewinnen.
+# Das Ziel-Format im VBS: oShell.Run """C:\Pfad\pythonw.exe"" ""C:\Pfad\script.py""", 0, False
+$vbsCommand = 'oShell.Run """{0}"" ""{1}""", 0, False' -f $venvPythonW, $scriptPath
+
 $vbsLines = @(
     'Set oShell = CreateObject("WScript.Shell")',
-    'oShell.Run """' + $venvPythonW + '"" ""' + $scriptPath + '""", 0, False'
+    $vbsCommand
 )
-$vbsLines | Out-File -FilePath $vbsPath -Encoding Default -Force
+
+# WICHTIG: Encoding auf Ascii, damit WScript nicht über Byte-Order-Marks (BOM) stolpert
+$vbsLines | Out-File -FilePath $vbsPath -Encoding Ascii -Force
 
 # Autostart-Ordner des aktuellen Benutzers
 $startupFolder = [System.Environment]::GetFolderPath("Startup")
@@ -161,6 +167,7 @@ $shortcutPath  = Join-Path $startupFolder "$AppName.lnk"
 $wsh      = New-Object -ComObject WScript.Shell
 $shortcut = $wsh.CreateShortcut($shortcutPath)
 $shortcut.TargetPath       = "wscript.exe"
+# Hier stellen wir sicher, dass der Pfad zur VBS-Datei in der Verknüpfung in Anführungszeichen steht
 $shortcut.Arguments        = "`"$vbsPath`""
 $shortcut.WorkingDirectory = $InstallDir
 $shortcut.Description      = "40-15-5 Bewegungs-Reminder"
