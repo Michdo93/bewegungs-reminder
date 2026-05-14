@@ -11,6 +11,7 @@
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$ErrorView = "NormalView"
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
 $RepoUrl    = "https://github.com/DEIN-USER/DEIN-REPO.git"   # <-- anpassen
@@ -102,11 +103,11 @@ Write-Step "Repository einrichten in: $InstallDir"
 if (Test-Path (Join-Path $InstallDir ".git")) {
     Write-Host "    Repo existiert bereits - fuehre git pull aus..." -ForegroundColor Yellow
     Push-Location $InstallDir
-    git pull
+    git pull 2>&1 | ForEach-Object { Write-Host "    $_" }
     Pop-Location
 } else {
     if (Test-Path $InstallDir) { Remove-Item $InstallDir -Recurse -Force }
-    git clone $RepoUrl $InstallDir
+    git clone $RepoUrl $InstallDir 2>&1 | ForEach-Object { Write-Host "    $_" }
     if ($LASTEXITCODE -ne 0) { Write-Fail "git clone fehlgeschlagen." }
 }
 Write-OK "Repository bereit."
