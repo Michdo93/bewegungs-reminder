@@ -150,7 +150,7 @@ if (-not (Test-Path $scriptPath)) {
 $vbsPath = Join-Path $InstallDir "start_reminder.vbs"
 $vbsLines = @(
     'Set oShell = CreateObject("WScript.Shell")',
-    "oShell.Run " + [char]34 + [char]34 + [char]34 + $venvPythonW + [char]34 + [char]34 + " " + [char]34 + [char]34 + $scriptPath + [char]34 + [char]34 + ", 0, False"
+    'oShell.Run """' + $venvPythonW + '"" ""' + $scriptPath + '""", 0, False'
 )
 $vbsLines | Out-File -FilePath $vbsPath -Encoding Default -Force
 
