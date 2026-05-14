@@ -261,6 +261,9 @@ def main():
     )
     timer.icon = icon
 
+    # Automatisch starten sobald die App läuft
+    timer.start_or_resume()
+
     # Icon-Refresh-Thread (alle 5 Sek. auch wenn kein Phasenwechsel)
     def periodic_refresh():
         while True:
