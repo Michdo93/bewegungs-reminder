@@ -13,7 +13,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
-$RepoUrl    = "https://github.com/Michdo93/bewegungs-reminder"   # <-- anpassen
+$RepoUrl    = "https://github.com/DEIN-USER/DEIN-REPO.git"   # <-- anpassen
 $RepoName   = "bewegungs-reminder"                             # <-- Ordnername nach dem Clone
 $InstallDir = Join-Path $env:LOCALAPPDATA $RepoName           # z.B. C:\Users\...\AppData\Local\bewegungs-reminder
 $MainScript = "bewegungs_reminder.py"
@@ -52,7 +52,6 @@ foreach ($cmd in @("python", "python3")) {
 if (-not $pythonCmd) {
     Write-Step "Python 3 nicht gefunden - installiere via winget..."
 
-    # Winget-Verfuegbarkeit pruefen
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
         Write-Fail ("winget nicht gefunden. Bitte Windows 10 1809+ oder " +
                     "App Installer aus dem Microsoft Store installieren: " +
@@ -62,7 +61,6 @@ if (-not $pythonCmd) {
     winget install --id Python.Python.3 --source winget --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -ne 0) { Write-Fail "winget-Installation fehlgeschlagen." }
 
-    # PATH neu einlesen (winget aendert ihn fuer die aktuelle Session nicht automatisch)
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") +
                 ";" +
                 [System.Environment]::GetEnvironmentVariable("Path", "User")
@@ -143,23 +141,17 @@ Pop-Location
 # ── 6. Autostart einrichten ───────────────────────────────────────────────────
 Write-Step "Richte Autostart ein..."
 
-$scriptPath  = Join-Path $InstallDir $MainScript
+$scriptPath = Join-Path $InstallDir $MainScript
 if (-not (Test-Path $scriptPath)) {
     Write-Fail "$MainScript nicht im Repo gefunden."
 }
 
-# pythonw.exe: fuehrt .py aus OHNE Konsolenfenster
-# Wir legen eine .vbs-Datei an, die pythonw lautlos startet -
-# direkter Autostart-Shortcut auf pythonw + Argument funktioniert
-# in manchen Windows-Versionen nicht zuverlaessig.
-
-$vbsPath = Join-Path $InstallDir "start_reminder.vbs"
-$vbsContent = @"
-' Startet den Bewegungs-Reminder lautlos (kein Konsolenfenster)
-Set oShell = CreateObject("WScript.Shell")
-oShell.Run """$venvPythonW"" ""$scriptPath""", 0, False
-"@
-Set-Content -Path $vbsPath -Value $vbsContent -Encoding UTF8
+# VBScript braucht ANSI-Encoding (kein UTF-8-BOM), sonst Fehler 800A0408
+# Daher WriteAllText mit Encoding::Default statt Set-Content -Encoding UTF8
+$vbsPath    = Join-Path $InstallDir "start_reminder.vbs"
+$vbsContent = "Set oShell = CreateObject(""WScript.Shell"")" + [Environment]::NewLine +
+              "oShell.Run """""  + $venvPythonW + """ """ + $scriptPath + """"", 0, False"
+[System.IO.File]::WriteAllText($vbsPath, $vbsContent, [System.Text.Encoding]::Default)
 
 # Autostart-Ordner des aktuellen Benutzers
 $startupFolder = [System.Environment]::GetFolderPath("Startup")
