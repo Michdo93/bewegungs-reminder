@@ -85,7 +85,7 @@ Die folgenden Programme werden vom Setup-Script bei Bedarf automatisch installie
 Die einfachste Methode. Ein einziger Befehl in der PowerShell genügt:
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://bit.ly/XXXXXXX | iex
+Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://bit.ly/4ueNu1E | iex
 ```
 
 > **Hinweis:** Die ExecutionPolicy wird nur für diese eine PowerShell-Session auf `Bypass` gesetzt – keine dauerhafte Systemänderung.
@@ -113,7 +113,7 @@ Falls du die automatische Installation lieber nicht verwenden möchtest oder etw
 ### Schritt 1: Repository klonen
 
 ```powershell
-git clone https://github.com/DEIN-USER/bewegungs-reminder.git
+git clone https://github.com/Michdo93/bewegungs-reminder
 cd bewegungs-reminder
 ```
 
@@ -137,6 +137,11 @@ python -m venv .
 
 `pythonw.exe` startet das Script ohne Konsolenfenster. Zum Debuggen kann stattdessen `python.exe` verwendet werden, dann ist die Konsole sichtbar.
 
+```powershell
+.\Scripts\activate
+python bewegungs_reminder.py
+```
+
 ### Schritt 5: Autostart manuell einrichten
 
 Den Autostart-Ordner öffnen:
@@ -151,6 +156,8 @@ Dort eine neue Textdatei `BewegungsReminder.vbs` mit folgendem Inhalt anlegen (P
 Set oShell = CreateObject("WScript.Shell")
 oShell.Run """C:\Users\DEIN-NAME\AppData\Local\bewegungs-reminder\Scripts\pythonw.exe"" ""C:\Users\DEIN-NAME\AppData\Local\bewegungs-reminder\bewegungs_reminder.py""", 0, False
 ```
+
+*Anmerkung*: Bitte den Pfad natürlich so anpassen, dass der Pfad verwendet wird, wo dieses Repository hingeklont wurde.
 
 ---
 
@@ -247,7 +254,7 @@ Die Ordner `Scripts/`, `Lib/`, `Include/` und `pyvenv.cfg` werden automatisch vo
 Windows blockiert PowerShell-Scripts standardmäßig. Die ExecutionPolicy für die aktuelle Session umgehen:
 
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://bit.ly/XXXXXXX | iex
+Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://bit.ly/4ueNu1E | iex
 ```
 
 ### Python wurde installiert, aber nicht gefunden
@@ -280,7 +287,6 @@ Alternativ Python manuell von [python.org](https://www.python.org/downloads/) in
 Setup-Script einfach erneut ausführen. Es erkennt das vorhandene Repository und führt `git pull` aus, danach werden Abhängigkeiten aktualisiert und der Autostart-Eintrag neu gesetzt.
 
 ---
-
 ## Lizenz
 
 MIT License – mach damit was du willst.
