@@ -1,38 +1,23 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Setup-Script fuer den 40-15-5 Bewegungs-Reminder
-.DESCRIPTION
-    - Prueft / installiert Python 3 via winget
-    - Erstellt ein venv im Repo-Verzeichnis
-    - Installiert Abhaengigkeiten (requirements.txt)
-    - Legt einen Autostart-Eintrag an (startet lautlos via pythonw.exe)
+    Setup-Script fuer den 40-15-5 Bewegungs-Reminder (Fixed Version)
 #>
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Continue"
 
 # ── Konfiguration ──────────────────────────────────────────────────────────────
-$RepoUrl    = "https://github.com/Michdo93/bewegungs-reminder"   # <-- anpassen
-$RepoName   = "bewegungs-reminder"                             # <-- Ordnername nach dem Clone
-$InstallDir = Join-Path $env:LOCALAPPDATA $RepoName           # z.B. C:\Users\...\AppData\Local\bewegungs-reminder
+$RepoUrl    = "https://github.com/Michdo93/bewegungs-reminder"
+$RepoName   = "bewegungs-reminder"
+$InstallDir = Join-Path $env:LOCALAPPDATA $RepoName
 $MainScript = "bewegungs_reminder.py"
 $AppName    = "BewegungsReminder"
 # ──────────────────────────────────────────────────────────────────────────────
 
-function Write-Step($msg) {
-    Write-Host ""
-    Write-Host ">>> $msg" -ForegroundColor Cyan
-}
-
-function Write-OK($msg) {
-    Write-Host "    OK: $msg" -ForegroundColor Green
-}
-
-function Write-Fail($msg) {
-    Write-Host "    FEHLER: $msg" -ForegroundColor Red
-    exit 1
-}
+function Write-Step($msg) { Write-Host "`n>>> $msg" -ForegroundColor Cyan }
+function Write-OK($msg)   { Write-Host "    OK: $msg" -ForegroundColor Green }
+function Write-Fail($msg) { Write-Host "    FEHLER: $msg" -ForegroundColor Red; exit 1 }
 
 # ── 1. Python pruefen / installieren ──────────────────────────────────────────
 Write-Step "Pruefe Python 3..."
@@ -142,38 +127,36 @@ Pop-Location
 Write-Step "Richte Autostart ein..."
 
 $scriptPath = Join-Path $InstallDir $MainScript
+$venvPythonW = Join-Path $InstallDir "Scripts\pythonw.exe"
+
 if (-not (Test-Path $scriptPath)) {
     Write-Fail "$MainScript nicht im Repo gefunden."
 }
 
 $vbsPath = Join-Path $InstallDir "start_reminder.vbs"
 
-# Wir nutzen hier den Format-Operator (-f), um die Anführungszeichen-Schlacht zu gewinnen.
-# Das Ziel-Format im VBS: oShell.Run """C:\Pfad\pythonw.exe"" ""C:\Pfad\script.py""", 0, False
-$vbsCommand = 'oShell.Run """{0}"" ""{1}""", 0, False' -f $venvPythonW, $scriptPath
+# KORREKTUR: Wir bauen den VBS-Inhalt als EINEN flachen String mit expliziten Umbrüchen (`r`n)
+# Das verhindert, dass PowerShell beim Schreiben des Arrays eigene Zeilenumbrüche in den oShell.Run Befehl mogelt.
+$vbsContent = "Set oShell = CreateObject(`"WScript.Shell`")" + "`r`n" + `
+               "oShell.Run `"`"`"`" + $venvPythonW + `"`"`" `"`"`" + $scriptPath + `"`"`"`, 0, False"
 
-$vbsLines = @(
-    'Set oShell = CreateObject("WScript.Shell")',
-    $vbsCommand
-)
+# Wir nutzen Set-Content mit -NoNewline oder schreiben den String direkt, 
+# um die volle Kontrolle über die Zeilen zu haben.
+Set-Content -Path $vbsPath -Value $vbsContent -Encoding Ascii
 
-# WICHTIG: Encoding auf Ascii, damit WScript nicht über Byte-Order-Marks (BOM) stolpert
-$vbsLines | Out-File -FilePath $vbsPath -Encoding Ascii -Force
-
-# Autostart-Ordner des aktuellen Benutzers
+# Autostart-Verknüpfung
 $startupFolder = [System.Environment]::GetFolderPath("Startup")
 $shortcutPath  = Join-Path $startupFolder "$AppName.lnk"
 
 $wsh      = New-Object -ComObject WScript.Shell
 $shortcut = $wsh.CreateShortcut($shortcutPath)
 $shortcut.TargetPath       = "wscript.exe"
-# Hier stellen wir sicher, dass der Pfad zur VBS-Datei in der Verknüpfung in Anführungszeichen steht
 $shortcut.Arguments        = "`"$vbsPath`""
 $shortcut.WorkingDirectory = $InstallDir
 $shortcut.Description      = "40-15-5 Bewegungs-Reminder"
 $shortcut.Save()
 
-Write-OK "Autostart-Verknuepfung erstellt: $shortcutPath"
+Write-OK "Autostart-Verknuepfung erstellt."
 
 # ── 7. Direkt starten ─────────────────────────────────────────────────────────
 Write-Step "Starte Reminder jetzt..."
